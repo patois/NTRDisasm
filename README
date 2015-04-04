@@ -13,3 +13,4 @@ features and tricks to learn from, such as
 - client / server code
 - a plugin system
 - calling privileged ARM11 code using svcBackdoor()
+- running games from other regions by patching their SMDH
