@@ -1,0 +1,15 @@
+This is a work-in-progress project which aims at reverse
+engineering and documenting the NTR 2.0 custom firmware (CFW)
+for the Nintendo N3DS. The CFW contains some interesting
+features and tricks to learn from, such as
+
+- the injection of code into foreign processes by
+  temporarily modifying Kernel objects
+- displaying in-game menus by writing to LCD registers
+- "stealing" service handles from known locations of
+  other processes
+- hooking code
+- implementation of a debugger
+- client / server code
+- a plugin system
+- calling privileged ARM11 code using svcBackdoor()
