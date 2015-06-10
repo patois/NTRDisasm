@@ -841,6 +841,7 @@ static Bytes_0(void) {
 	MakeCode	(x=0X101254);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X101258,	"hook FSFile:Read (statically linked into homemenu) in order to disable region lock");
 	MakeComm	(0X10125C,	"rthook");
 	MakeCode	(x=0X10125C);
 	OpOff		(x,	1,	0);
@@ -857,6 +858,7 @@ static Bytes_0(void) {
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
 	MakeComm	(0X101270,	"funcaddr");
+	MakeComm	(0X101274,	"hook nss:CardUpdateInitialize (statically linked into homemenu) in order to bypass mandatory cart updates");
 	MakeComm	(0X101278,	"rthook");
 	MakeCode	(x=0X101278);
 	OpOff		(x,	1,	0);
@@ -5098,6 +5100,15 @@ static Bytes_0(void) {
 	MakeComm	(0X106B90,	"get va_arm11_kernel_base");
 	MakeComm	(0X106BA0,	"patch error code 0xE0E01BEE");
 	MakeComm	(0X106BAC,	"patch error code 0xE0E01BF5");
+}
+
+//------------------------------------------------------------------------
+// Information about bytes
+
+static Bytes_1(void) {
+        auto x;
+#define id x
+
 	MakeCode	(x=0X106BB0);
 	OpOff		(x,	1,	0X10837C);
 	OpOff		(x,	129,	0X10837C);
@@ -5108,15 +5119,6 @@ static Bytes_0(void) {
 	ExtLinA		(0X106BBC,	4,	"ORR             R0, R0, #0xC0");
 	ExtLinA		(0X106BBC,	5,	"MSR             CPSR_cf, R0");
 	ExtLinA		(0X106BBC,	6,	"");
-}
-
-//------------------------------------------------------------------------
-// Information about bytes
-
-static Bytes_1(void) {
-        auto x;
-#define id x
-
 	MakeComm	(0X106BC8,	"dst");
 	MakeCode	(x=0X106BC8);
 	OpOff		(x,	1,	0);
@@ -6501,19 +6503,22 @@ static Bytes_1(void) {
 	MakeName	(0X10A938,	"config_mem_offs_1000");
 	MakeDword	(0X10A944);
 	MakeName	(0X10A944,	"process_manager_patch_addr");
+	MakeStruct	(0X10A948,	"RT_HOOK");
 	MakeName	(0X10A948,	"rthook_return_C821180B");
 	MakeDword	(0X10AA14);
 	MakeName	(0X10AA14,	"nintendo_home_ptr_fsuser_handle");
 	MakeStruct	(0X10AA18,	"RT_HOOK");
 	MakeName	(0X10AA18,	"rthook_patch_smdh");
+	MakeRptCmt	(0X10AAE4,	"nss:CardUpdateInitialize");
 	MakeDword	(0X10AAE4);
-	MakeName	(0X10AAE4,	"nintendo_home_some_retval_hook_addr");
+	MakeName	(0X10AAE4,	"nintendo_home_nss_CardUpdateInitialize_addr");
 	MakeComm	(0X10AAE8,	"called by nn::applet::CTR::detail::PrepareToStartApplication(nn::fs::TitleDataSpecifier const*, bool)");
 	MakeDword	(0X10AAE8);
 	MakeName	(0X10AAE8,	"nintendo_home_applet_start_hook_addr");
 	MakeComm	(0X10AAEC,	"called by nn::fs::CTR::MPCore::detail::FileServerArchive::File::TryRead");
+	MakeRptCmt	(0X10AAEC,	"FSFile:Read");
 	MakeDword	(0X10AAEC);
-	MakeName	(0X10AAEC,	"nintendo_home_smdh_parser_hook_addr");
+	MakeName	(0X10AAEC,	"nintendo_home_FSFile_Read_addr");
 	MakeDword	(0X10AAF0);
 	MakeName	(0X10AAF0,	"nintendo_home_FlushDataCache_addr");
 	MakeDword	(0X10AAF4);

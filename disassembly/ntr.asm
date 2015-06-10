@@ -12,8 +12,8 @@ PLGLOADER_INFO	ends
 
 ; ---------------------------------------------------------------------------
 
-RT_HOOK		struc ;	(sizeof=0xCC)	; XREF:	ROM:rthook_patch_smdhr
-					; ROM:rthook_applet_startr ...
+RT_HOOK		struc ;	(sizeof=0xCC)	; XREF:	ROM:rthook_return_C821180Br
+					; ROM:rthook_patch_smdhr ...
 model		DCD ?
 isEnabled	DCD ?			; XREF:	rtEnableHookr
 funcAddr	DCD ?			; XREF:	rtEnableHook+18r
@@ -65,6 +65,10 @@ NS_BREAKPOINT	ends
 
 ; Input	MD5   :	83D5AFBB8D2679C587C5FB573A6E51BB
 ; Input	CRC32 :	AF8DF362
+
+; File Name   :	ntr.bin
+; Format      :	Binary file
+; Base Address:	0000h Range: 0000h - B08Ch Loaded length: B08Ch
 
 ; Processor	  : ARM
 ; ARM architecture: metaarm
@@ -1247,6 +1251,7 @@ dword_100BA4	DCD 0x8020000		; DATA XREF: sub_100B78+Cr
 
 ; =============== S U B	R O U T	I N E =======================================
 
+; bypass cart updates
 
 callback_return_C821180B		; DATA XREF: thread_NTR_home_injectee+24o
 					; ROM:off_101358o
@@ -1260,6 +1265,7 @@ dword_100BB0	DCD 0xC821180B		; DATA XREF: callback_return_C821180Br
 
 ; =============== S U B	R O U T	I N E =======================================
 
+; enable region	free
 
 callback_patch_smdh			; DATA XREF: thread_NTR_home_injectee+Co
 					; ROM:callback_addro
@@ -1431,12 +1437,12 @@ hSrc		= -0xC
 		LDR		R3, =nintendo_home_FlushDataCache_addr
 		LDR		R2, =0x131208
 		STR		R2, [R3]
-		LDR		R3, =nintendo_home_smdh_parser_hook_addr
+		LDR		R3, =nintendo_home_FSFile_Read_addr ; FSFile:Read
 		LDR		R2, =0x12F6EC
-		STR		R2, [R3]
-		LDR		R3, =nintendo_home_some_retval_hook_addr
+		STR		R2, [R3] ; FSFile:Read
+		LDR		R3, =nintendo_home_nss_CardUpdateInitialize_addr ; nss:CardUpdateInitialize
 		LDR		R2, =0x139900
-		STR		R2, [R3]
+		STR		R2, [R3] ; nss:CardUpdateInitialize
 		LDR		R2, =0x2F0EFC
 		B		loc_100D68
 
@@ -1452,12 +1458,12 @@ loc_100D2C				; CODE XREF: get_nintendo_home_version_info+4Cj
 		LDR		R3, =nintendo_home_FlushDataCache_addr
 		LDR		R2, =0x131208
 		STR		R2, [R3]
-		LDR		R3, =nintendo_home_smdh_parser_hook_addr
+		LDR		R3, =nintendo_home_FSFile_Read_addr ; FSFile:Read
 		LDR		R2, =0x12F6EC
-		STR		R2, [R3]
-		LDR		R3, =nintendo_home_some_retval_hook_addr
+		STR		R2, [R3] ; FSFile:Read
+		LDR		R3, =nintendo_home_nss_CardUpdateInitialize_addr ; nss:CardUpdateInitialize
 		LDR		R2, =0x139900
-		STR		R2, [R3]
+		STR		R2, [R3] ; nss:CardUpdateInitialize
 		LDR		R2, =0x2F1EFC
 
 
@@ -1479,12 +1485,12 @@ loc_100D78				; CODE XREF: get_nintendo_home_version_info+8Cj
 		LDR		R3, =nintendo_home_FlushDataCache_addr
 		LDR		R2, =0x130CFC
 		STR		R2, [R3]
-		LDR		R3, =nintendo_home_smdh_parser_hook_addr
+		LDR		R3, =nintendo_home_FSFile_Read_addr ; FSFile:Read
 		LDR		R2, =0x12F224
-		STR		R2, [R3]
-		LDR		R3, =nintendo_home_some_retval_hook_addr
+		STR		R2, [R3] ; FSFile:Read
+		LDR		R3, =nintendo_home_nss_CardUpdateInitialize_addr ; nss:CardUpdateInitialize
 		LDR		R2, =0x1393F4
-		STR		R2, [R3]
+		STR		R2, [R3] ; nss:CardUpdateInitialize
 		LDR		R3, =nintendo_home_ptr_fsuser_handle
 		LDR		R2, =0x2EFEFC
 		STR		R2, [R3]
@@ -1503,12 +1509,12 @@ loc_100DC4				; CODE XREF: get_nintendo_home_version_info+D8j
 		LDR		R3, =nintendo_home_FlushDataCache_addr
 		LDR		R2, =0x129098
 		STR		R2, [R3]
-		LDR		R3, =nintendo_home_smdh_parser_hook_addr
+		LDR		R3, =nintendo_home_FSFile_Read_addr ; FSFile:Read
 		LDR		R2, =0x11AAB8
-		STR		R2, [R3]
-		LDR		R3, =nintendo_home_some_retval_hook_addr
+		STR		R2, [R3] ; FSFile:Read
+		LDR		R3, =nintendo_home_nss_CardUpdateInitialize_addr ; nss:CardUpdateInitialize
 		LDR		R2, =0x13339C
-		STR		R2, [R3]
+		STR		R2, [R3] ; nss:CardUpdateInitialize
 		LDR		R3, =nintendo_home_ptr_fsuser_handle
 		LDR		R2, =0x278E4C
 		STR		R2, [R3]
@@ -1544,14 +1550,16 @@ off_100E38	DCD nintendo_home_FlushDataCache_addr
 					; get_nintendo_home_version_info+98r ...
 dword_100E3C	DCD 0x131208		; DATA XREF: get_nintendo_home_version_info+5Cr
 					; get_nintendo_home_version_info+9Cr
-off_100E40	DCD nintendo_home_smdh_parser_hook_addr
+off_100E40	DCD nintendo_home_FSFile_Read_addr
 					; DATA XREF: get_nintendo_home_version_info+64r
 					; get_nintendo_home_version_info+A4r ...
+					; FSFile:Read
 dword_100E44	DCD 0x12F6EC		; DATA XREF: get_nintendo_home_version_info+68r
 					; get_nintendo_home_version_info+A8r
-off_100E48	DCD nintendo_home_some_retval_hook_addr
+off_100E48	DCD nintendo_home_nss_CardUpdateInitialize_addr
 					; DATA XREF: get_nintendo_home_version_info+70r
 					; get_nintendo_home_version_info+B0r ...
+					; nss:CardUpdateInitialize
 dword_100E4C	DCD 0x139900		; DATA XREF: get_nintendo_home_version_info+74r
 					; get_nintendo_home_version_info+B4r
 dword_100E50	DCD 0x2F0EFC		; DATA XREF: get_nintendo_home_version_info+7Cr
@@ -2009,21 +2017,21 @@ off_101240	DCD aOpenFailed08x	; DATA XREF: set_KProcess_refcount_to_1+18r
 
 thread_NTR_home_injectee		; DATA XREF: install_ntr+1C4o
 					; ROM:off_1017D8o
-		LDR		R3, =nintendo_home_smdh_parser_hook_addr
+		LDR		R3, =nintendo_home_FSFile_Read_addr ; FSFile:Read
 		STMFD		SP!, {R4,LR}
 		LDR		R1, [R3] ; funcaddr
 		LDR		R2, =callback_patch_smdh ; callback_addr
 		LDR		R0, =rthook_patch_smdh ; hook
-		BL		rtInitHook
+		BL		rtInitHook ; hook FSFile:Read (statically linked into homemenu)	in order to disable region lock
 
 		LDR		R0, =rthook_patch_smdh ; rthook
 		BL		rtEnableHook
 
-		LDR		R3, =nintendo_home_some_retval_hook_addr
+		LDR		R3, =nintendo_home_nss_CardUpdateInitialize_addr ; nss:CardUpdateInitialize
 		LDR		R2, =callback_return_C821180B ;	callback_addr
 		LDR		R0, =rthook_return_C821180B ; hook
 		LDR		R1, [R3] ; funcaddr
-		BL		rtInitHook
+		BL		rtInitHook ; hook nss:CardUpdateInitialize (statically linked into homemenu) in	order to bypass	mandatory cart updates
 
 		LDR		R0, =rthook_return_C821180B ; rthook
 		BL		rtEnableHook
@@ -2116,21 +2124,24 @@ skip_NTR_OSD				; CODE XREF: thread_NTR_home_injectee+E0j
 ; End of function thread_NTR_home_injectee
 
 ; ---------------------------------------------------------------------------
-off_101348	DCD nintendo_home_smdh_parser_hook_addr
-					; DATA XREF: thread_NTR_home_injecteer
+off_101348	DCD nintendo_home_FSFile_Read_addr ; DATA XREF:	thread_NTR_home_injecteer
 					; ROM:offsets_starto
+					; FSFile:Read
 ; void *callback_addr
 callback_addr	DCD callback_patch_smdh	; DATA XREF: thread_NTR_home_injectee+Cr
 					; ROM:offsets_starto
+					; enable region	free
 ; RT_HOOK *rthook
 rthook		DCD rthook_patch_smdh	; DATA XREF: thread_NTR_home_injectee+10r
 					; thread_NTR_home_injectee+18r	...
-off_101354	DCD nintendo_home_some_retval_hook_addr
+off_101354	DCD nintendo_home_nss_CardUpdateInitialize_addr
 					; DATA XREF: thread_NTR_home_injectee+20r
 					; ROM:offsets_starto
+					; nss:CardUpdateInitialize
 ; void *off_101358
 off_101358	DCD callback_return_C821180B ; DATA XREF: thread_NTR_home_injectee+24r
 					; ROM:offsets_starto
+					; bypass cart updates
 ; RT_HOOK *off_10135C
 off_10135C	DCD rthook_return_C821180B ; DATA XREF:	thread_NTR_home_injectee+28r
 					; thread_NTR_home_injectee+34r	...
@@ -17174,222 +17185,21 @@ config_mem_offs_1000 DCD 0		; DATA XREF: install_ntr+1B8w
 		DCB    0
 process_manager_patch_addr DCD 0	; DATA XREF: get_kernel_version_info+28o
 					; get_kernel_version_info+38w ...
-rthook_return_C821180B DCB    0		; DATA XREF: thread_NTR_home_injectee+28o
+rthook_return_C821180B RT_HOOK <0>	; DATA XREF: thread_NTR_home_injectee+28o
 					; thread_NTR_home_injectee+34o	...
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
 nintendo_home_ptr_fsuser_handle	DCD 0	; DATA XREF: get_nintendo_home_version_info:loc_100D68o
 					; get_nintendo_home_version_info+C4w ...
 rthook_patch_smdh RT_HOOK <0>		; DATA XREF: thread_NTR_home_injectee+10o
 					; thread_NTR_home_injectee+18o	...
-nintendo_home_some_retval_hook_addr DCD	0 ; DATA XREF: get_nintendo_home_version_info+70o
+nintendo_home_nss_CardUpdateInitialize_addr DCD	0
+					; DATA XREF: get_nintendo_home_version_info+70o
 					; get_nintendo_home_version_info+78w ...
+					; nss:CardUpdateInitialize
 nintendo_home_applet_start_hook_addr DCD 0
 					; DATA XREF: get_nintendo_home_version_info:loc_100E0Co
 					; get_nintendo_home_version_info+168w ...
 					; called by nn::applet::CTR::detail::PrepareToStartApplication(nn::fs::TitleDataSpecifier const*, bool)
-nintendo_home_smdh_parser_hook_addr DCD	0 ; DATA XREF: get_nintendo_home_version_info+64o
+nintendo_home_FSFile_Read_addr DCD 0	; DATA XREF: get_nintendo_home_version_info+64o
 					; get_nintendo_home_version_info+6Cw ...
 					; called by nn::fs::CTR::MPCore::detail::FileServerArchive::File::TryRead
 nintendo_home_FlushDataCache_addr DCD 0	; DATA XREF: get_nintendo_home_version_info+58o
