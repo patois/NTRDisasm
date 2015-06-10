@@ -12,8 +12,8 @@ PLGLOADER_INFO	ends
 
 ; ---------------------------------------------------------------------------
 
-RT_HOOK		struc ;	(sizeof=0xCC)	; XREF:	ROM:rthook_applet_startr
-					; NS_BREAKPOINTr
+RT_HOOK		struc ;	(sizeof=0xCC)	; XREF:	ROM:rthook_patch_smdhr
+					; ROM:rthook_applet_startr ...
 model		DCD ?
 isEnabled	DCD ?			; XREF:	rtEnableHookr
 funcAddr	DCD ?			; XREF:	rtEnableHook+18r
@@ -1264,17 +1264,33 @@ dword_100BB0	DCD 0xC821180B		; DATA XREF: callback_return_C821180Br
 callback_patch_smdh			; DATA XREF: thread_NTR_home_injectee+Co
 					; ROM:callback_addro
 
-arg_0		=  0
-arg_4		=  4
+ptr_SMDH	=  0
+size_SMDH	=  4
 
 		STMFD		SP!, {R0,R1,R4-R6,LR}
-		LDR		R5, [SP,#0x18+arg_4]
-		LDR		R4, [SP,#0x18+arg_0]
-		LDR		R12, =callee_patch_smdh
+		LDR		R5, [SP,#0x18+size_SMDH]
+		LDR		R4, [SP,#0x18+ptr_SMDH]
+		LDR		R12, =rthook_patch_smdh.callCode
 		STMEA		SP, {R4,R5}
-		BLX		R12 ; callee_patch_smdh
+		BLX		R12	; calls	original (hooked) function:
+					; ---------------------------------
+					; 1. executes the two backed up	instructions that have
+					;    been overwritten by the function hook mechanism
+					;
+					; 2. executes a	ldr pc,	orig_func + 8, in order	to execute
+					;    the original function
+					;
+					; 3. waits for the original function to	return (which will
+					;    then contain:
+					;
+					;    R0	= return value of original function
+					;    [the following registers are preserved]
+					;    R4	= pointer to SMDH
+					;    R5	= size of SMDH
+					;
+					; (for details refer to	the rtInitHook function	in the NTR plugin SDK)
 
-		CMP		R5, #0x36C0 ; size of smdh?
+		CMP		R5, #0x36C0 ; size of SMDH
 		MOV		R6, R0
 		BNE		invalid_smdh
 
@@ -1300,7 +1316,7 @@ invalid_smdh				; CODE XREF: callback_patch_smdh+20j
 ; End of function callback_patch_smdh
 
 ; ---------------------------------------------------------------------------
-off_100C08	DCD callee_patch_smdh	; DATA XREF: callback_patch_smdh+Cr
+off_100C08	DCD rthook_patch_smdh.callCode ; DATA XREF: callback_patch_smdh+Cr
 					; ROM:offsets_starto
 dword_100C0C	DCD 'HDMS'		; DATA XREF: callback_patch_smdh+28r
 off_100C10	DCD aPatchingSmdh	; DATA XREF: callback_patch_smdh+34r
@@ -2394,24 +2410,24 @@ loc_1015AC				; CODE XREF: install_ntr+98j
 		LDR		R0, =aFirmwareVersio ; "firmware version not supported"
 		BL		invoke_osd_wait_for_input
 
-		MOV		R0, #0
+		MOV		R0, #0	; pid
 		LDR		R1, =aPid0_dmp ; "/pid0.dmp"
 		BL		dump_process_to_file
 
-		MOV		R0, #2
+		MOV		R0, #2	; pid
 		LDR		R1, =aPid2_dmp ; "/pid2.dmp"
 		BL		dump_process_to_file
 
-		MOV		R0, #3
+		MOV		R0, #3	; pid
 		LDR		R1, =aPid3_dmp ; "/pid3.dmp"
 		BL		dump_process_to_file
 
-		MOV		R0, #0xF
+		MOV		R0, #0xF ; pid
 		LDR		R1, =aPidf_dmp ; "/pidf.dmp"
 		BL		dump_process_to_file
 
-		LDR		R0, =0xDFF80000
-		MOV		R1, #0x80000
+		LDR		R0, =0xDFF80000	; va_dumpaddr
+		MOV		R1, #0x80000 ; size
 		LDR		R2, =aAxiwram_dmp ; "/axiwram.dmp"
 		BL		dump_memory_to_file
 
@@ -2461,10 +2477,10 @@ loc_101640				; CODE XREF: install_ntr+1Cj
 		BL		init_config_mem
 
 		LDR		R3, [R5]
-		MOV		R1, #8
+		MOV		R1, #8	; size
 		LDR		R6, [R3,#NS_CONFIG.startupInfo+8]
 		LDR		R2, [R3,#NS_CONFIG.startupInfo]!
-		MOV		R0, R6
+		MOV		R0, R6	; addr
 		STR		R2, [R6]
 		LDR		R2, [R3,#4]
 		STR		R2, [R6,#4]
@@ -2474,8 +2490,8 @@ loc_101640				; CODE XREF: install_ntr+1Cj
 		LDR		R1, =locret_1001A0 ; src
 		BL		rtGenerateJumpCode
 
-		MOV		R1, #8
-		LDR		R0, =locret_1001A0
+		MOV		R1, #8	; size
+		LDR		R0, =locret_1001A0 ; addr
 		BL		flush_current_process_data_cache
 
 		BL		sleep_thread
@@ -2597,19 +2613,25 @@ off_101794	DCD aHomemenuVersio	; DATA XREF: install_ntr+84r
 off_101798	DCD aFirmwareVersio	; DATA XREF: install_ntr:loc_1015ACr
 					; ROM:offsets_starto
 					; "firmware version not supported"
-off_10179C	DCD aPid0_dmp		; DATA XREF: install_ntr+B4r
+; char *filename
+filename	DCD aPid0_dmp		; DATA XREF: install_ntr+B4r
 					; ROM:offsets_starto
 					; "/pid0.dmp"
+; char *off_1017A0
 off_1017A0	DCD aPid2_dmp		; DATA XREF: install_ntr+C0r
 					; ROM:offsets_starto
 					; "/pid2.dmp"
+; char *off_1017A4
 off_1017A4	DCD aPid3_dmp		; DATA XREF: install_ntr+CCr
 					; ROM:offsets_starto
 					; "/pid3.dmp"
+; char *off_1017A8
 off_1017A8	DCD aPidf_dmp		; DATA XREF: install_ntr+D8r
 					; ROM:offsets_starto
 					; "/pidf.dmp"
-dword_1017AC	DCD 0xDFF80000		; DATA XREF: install_ntr+E0r
+; unsigned int va_dumpaddr
+va_dumpaddr	DCD 0xDFF80000		; DATA XREF: install_ntr+E0r
+; char *off_1017B0
 off_1017B0	DCD aAxiwram_dmp	; DATA XREF: install_ntr+E8r
 					; ROM:offsets_starto
 					; "/axiwram.dmp"
@@ -2627,8 +2649,8 @@ off_1017C0	DCD aHomemenuVerD	; DATA XREF: install_ntr+120r
 dword_1017C4	DCD 0x1FF0000		; DATA XREF: install_ntr+12Cr
 off_1017C8	DCD p_config_memory	; DATA XREF: install_ntr+144r
 					; ROM:offsets_starto
-; void *src
-src		DCD locret_1001A0	; DATA XREF: install_ntr+178r
+; void *addr
+addr		DCD locret_1001A0	; DATA XREF: install_ntr+178r
 					; install_ntr+184r ...
 off_1017D0	DCD pid_of_home_menu	; DATA XREF: install_ntr+19Cr
 					; ROM:offsets_starto
@@ -2678,7 +2700,7 @@ sub_10181C				; CODE XREF: sub_100484+18p
 		CMP		R2, #2
 
 
-loc_101820				; DATA XREF: sub_104914+10o
+loc_101820				; DATA XREF: patch_sm+10o
 					; ROM:off_104960o
 		BLE		locret_101854
 
@@ -3386,10 +3408,10 @@ copy_dmp_cmd				; CODE XREF: init_breakpoint_+98j
 		MOV		R7, #0x15C
 		LDR		R2, =sub_101CD4
 		MUL		R7, R7,	R8
-		MOV		R0, R4
+		MOV		R0, R4	; addr
 		ADD		R9, R6,	R7
 		ADD		R3, R9,	#0x6100
-		MOV		R1, #0x40 ; '@'
+		MOV		R1, #0x40 ; '@'	; size
 		STR		R8, [R3,#0x98]
 		STR		R2, [R3,#0x9C]
 		STR		R5, [R3,#0xA0]
@@ -7388,7 +7410,7 @@ var_20		= -0x20
 
 		MOV		R7, R0
 		MOV		R0, R9
-		BL		arm11k_set_current_process
+		BL		arm11k_set_current_kprocess
 
 		LDR		R2, =0x203
 		MOV		R3, #3
@@ -7401,7 +7423,7 @@ var_20		= -0x20
 
 		MOV		R5, R0
 		MOV		R0, R7
-		BL		arm11k_set_current_process
+		BL		arm11k_set_current_kprocess
 
 		CMP		R5, R6
 		LDRNE		R0, =aSvc_controlmem ; "svc_controlMemory failed: %08x"
@@ -7755,6 +7777,7 @@ off_1043B4	DCD offs_KCodeSet	; DATA XREF: get_process_name+60r
 ; =============== S U B	R O U T	I N E =======================================
 
 
+; void __cdecl dump_process_to_file(unsigned int pid, char *filename)
 dump_process_to_file			; CODE XREF: install_ntr+B8p
 					; install_ntr+C4p ...
 
@@ -8086,6 +8109,7 @@ off_104724	DCD aReadmemoryAddr	; DATA XREF: ROM:001046A0r
 ; =============== S U B	R O U T	I N E =======================================
 
 
+; int __cdecl dump_memory_to_file(unsigned int va_dumpaddr, unsigned int size, char *filename)
 dump_memory_to_file			; CODE XREF: install_ntr+ECp
 
 var_1128	= -0x1128
@@ -8226,7 +8250,7 @@ off_104888	DCD aOutaddr08xAddr+0xF	; DATA XREF: dump_memory_to_file+104r
 ; =============== S U B	R O U T	I N E =======================================
 
 
-inject_code				; CODE XREF: sub_104914+24p
+inject_code				; CODE XREF: patch_sm+24p
 
 size		= -0x28
 hDst		= -0x1C
@@ -8290,7 +8314,7 @@ dword_104910	DCD 0xFFFF8001		; DATA XREF: inject_code+58r
 ; =============== S U B	R O U T	I N E =======================================
 
 
-sub_104914
+patch_sm
 
 var_4		= -4
 
@@ -8313,17 +8337,17 @@ var_4		= -4
 		BL		showDbg
 
 
-patch_success				; CODE XREF: sub_104914+2Cj
+patch_success				; CODE XREF: patch_sm+2Cj
 		ADD		SP, SP,	#0x54
 		LDR		PC, [SP+4+var_4],#4
 
-; End of function sub_104914
+; End of function patch_sm
 
 ; ---------------------------------------------------------------------------
-dword_104958	DCD 0xE3A00001		; DATA XREF: sub_104914r
-dword_10495C	DCD 0xE12FFF1E		; DATA XREF: sub_104914+4r
-off_104960	DCD loc_101820		; DATA XREF: sub_104914+10r
-off_104964	DCD aPatchSmFailed0	; DATA XREF: sub_104914+30r
+dword_104958	DCD 0xE3A00001		; DATA XREF: patch_smr
+dword_10495C	DCD 0xE12FFF1E		; DATA XREF: patch_sm+4r
+off_104960	DCD loc_101820		; DATA XREF: patch_sm+10r
+off_104964	DCD aPatchSmFailed0	; DATA XREF: patch_sm+30r
 					; "patch sm failed: %08x"
 
 ; =============== S U B	R O U T	I N E =======================================
@@ -8433,8 +8457,8 @@ loc_104A08				; CODE XREF: ntr_cmd_process+104j
 		LDR		R2, [R4,#-0x640]
 		BL		xsprintf
 
-		LDR		R0, [R4,#-0x640]
-		ADD		R1, SP,	#0x6C0+a1
+		LDR		R0, [R4,#-0x640] ; pid
+		ADD		R1, SP,	#0x6C0+a1 ; filename
 		BL		dump_process_to_file
 
 		B		loc_104A08
@@ -9072,6 +9096,7 @@ LDR_PC_PC_MINUS_4 DCD 0xE51FF004	; DATA XREF: rtGenerateJumpCoder
 ; =============== S U B	R O U T	I N E =======================================
 
 
+; int __cdecl flush_current_process_data_cache(const void *addr, unsigned int size)
 flush_current_process_data_cache	; CODE XREF: install_ntr+170p
 					; install_ntr+188p ...
 		MOV		R3, R0
@@ -9112,14 +9137,14 @@ rtInitHook				; CODE XREF: thread_NTR_home_injectee+14p
 		STR		R3, [R4,#RT_HOOK.bakCode+4]
 		STR		R6, [R4,#RT_HOOK.jmpCode+4]
 		LDR		R3, [R5]
-		ADD		R0, R4,	#0x8C
+		ADD		R0, R4,	#0x8C ;	addr
 		STR		R3, [R4,#RT_HOOK.callCode]
 		LDR		R3, [R5,#4]
 		ADD		R5, R5,	#8
 		STR		R3, [R0,#4]
 		STR		R1, [R4,#RT_HOOK.callCode+8]
 		STR		R5, [R4,#RT_HOOK.callCode+0xC]
-		MOV		R1, #0x10
+		MOV		R1, #0x10 ; size
 		LDMFD		SP!, {R4-R6,LR}
 		B		flush_current_process_data_cache
 
@@ -9146,8 +9171,8 @@ rtEnableHook				; CODE XREF: thread_NTR_home_injectee+1Cp
 		STR		R3, [R1] ; place jmp
 		LDR		R3, [R2,#4]
 		STR		R3, [R1,#4] ; place target addr
-		MOV		R1, #8
-		LDR		R0, [R0,#8]
+		MOV		R1, #8	; size
+		LDR		R0, [R0,#8] ; addr
 		BL		flush_current_process_data_cache
 
 		MOV		R3, #1
@@ -9173,8 +9198,8 @@ disable_breakpoint			; CODE XREF: debugcmd_disable_breakpoint+60p
 		STR		R3, [R1]
 		LDR		R3, [R2,#4]
 		STR		R3, [R1,#4]
-		MOV		R1, #8
-		LDR		R0, [R0,#8]
+		MOV		R1, #8	; size
+		LDR		R0, [R0,#8] ; addr
 		BL		flush_current_process_data_cache
 
 		MOV		R3, #0
@@ -9187,8 +9212,9 @@ disable_breakpoint			; CODE XREF: debugcmd_disable_breakpoint+60p
 ; =============== S U B	R O U T	I N E =======================================
 
 
+; int __cdecl create_file(char *filename, unsigned int mode)
 create_file				; CODE XREF: write_to_file+E0p
-					; create_test_screenshot_+24p
+					; get_screenshot_index+24p
 
 var_38		= -0x38
 var_2C		= -0x2C
@@ -9370,8 +9396,8 @@ write_to_file				; CODE XREF: create_screenshot+C4p
 		STRB		R2, [R4,#0x2B]
 		STRB		R5, [R4,#0x2C]
 		STRB		R5, [R4,#0x2D]
-		MOV		R0, R9
-		MOV		R1, #7
+		MOV		R0, R9	; filename
+		MOV		R1, #7	; mode
 		BL		create_file
 
 		SUBS		R6, R0,	#0
@@ -9530,20 +9556,21 @@ locret_1053F0				; CODE XREF: sub_1052C4+38j
 ; =============== S U B	R O U T	I N E =======================================
 
 
-create_test_screenshot_			; CODE XREF: init_builtin_screenshot_plugin+38p
+; int get_screenshot_index(void)
+get_screenshot_index			; CODE XREF: init_builtin_screenshot_plugin+38p
 		STMFD		SP!, {R4,LR}
 		MOV		R4, #0
 		SUB		SP, SP,	#0x40
 
 
-loc_105400				; CODE XREF: create_test_screenshot_+38j
+loc_105400				; CODE XREF: get_screenshot_index+38j
 		MOV		R0, SP
 		LDR		R1, =aTop_04d_bmp ; "/top_%04d.bmp"
 		MOV		R2, R4
 		BL		xsprintf
 
-		MOV		R0, SP
-		MOV		R1, #3
+		MOV		R0, SP	; filename
+		MOV		R1, #3	; mode
 		BL		create_file
 
 		CMP		R0, #0
@@ -9556,20 +9583,21 @@ loc_105400				; CODE XREF: create_test_screenshot_+38j
 
 ; ---------------------------------------------------------------------------
 
-loc_105430				; CODE XREF: create_test_screenshot_+2Cj
+loc_105430				; CODE XREF: get_screenshot_index+2Cj
 		MOV		R0, R4
 		ADD		SP, SP,	#0x40
 		LDMFD		SP!, {R4,PC}
 
-; End of function create_test_screenshot_
+; End of function get_screenshot_index
 
 ; ---------------------------------------------------------------------------
-off_10543C	DCD aTop_04d_bmp	; DATA XREF: create_test_screenshot_+10r
+off_10543C	DCD aTop_04d_bmp	; DATA XREF: get_screenshot_index+10r
 					; "/top_%04d.bmp"
 
 ; =============== S U B	R O U T	I N E =======================================
 
 
+; int create_screenshot(void)
 create_screenshot			; CODE XREF: create_screenshot_callback+6Cp
 
 var_78		= -0x78
@@ -9801,7 +9829,7 @@ init_builtin_screenshot_plugin		; CODE XREF: thread_NTR_home_injectee+D0p
 		LDR		R0, =aFsuserhandle08 ; "fsUserHandle: %08x\n"
 		BL		nsDbgPrint
 
-		BL		create_test_screenshot_
+		BL		get_screenshot_index
 
 		LDR		R3, =bmp_idx
 		MOV		R1, R0
@@ -12022,7 +12050,7 @@ var_4		= -4
 
 
 Backdoor				; CODE XREF: arm11k_unknown_cmd5+1Cp
-					; arm11k_set_current_process+18j ...
+					; arm11k_set_current_kprocess+18j ...
 		SVC		0x7B ; '{'
 		BX		LR
 
@@ -12463,7 +12491,7 @@ off_106D88	DCD va_arm11_kernel_base_W ; DATA XREF:	arm11k_unknown_cmd5+10r
 ; =============== S U B	R O U T	I N E =======================================
 
 
-arm11k_set_current_process		; CODE XREF: map_remote_memory+30p
+arm11k_set_current_kprocess		; CODE XREF: map_remote_memory+30p
 					; map_remote_memory+5Cp
 		LDR		R3, =g_arm11_cmd
 		MOV		R2, #4
@@ -12473,11 +12501,11 @@ arm11k_set_current_process		; CODE XREF: map_remote_memory+30p
 		LDR		R0, [R3,#(p_cb - 0x10837C)]
 		B		Backdoor
 
-; End of function arm11k_set_current_process
+; End of function arm11k_set_current_kprocess
 
 ; ---------------------------------------------------------------------------
-off_106DA8	DCD g_arm11_cmd		; DATA XREF: arm11k_set_current_processr
-off_106DAC	DCD va_arm11_kernel_base_W ; DATA XREF:	arm11k_set_current_process+10r
+off_106DA8	DCD g_arm11_cmd		; DATA XREF: arm11k_set_current_kprocessr
+off_106DAC	DCD va_arm11_kernel_base_W ; DATA XREF:	arm11k_set_current_kprocess+10r
 
 ; =============== S U B	R O U T	I N E =======================================
 
@@ -15102,10 +15130,10 @@ offsets_start	DCD off_1001B4,	0x17, off_1001B8, 0x17,	off_1001BC, 0x17
 		DCD off_101490,	0x17, off_101494, 0x17,	off_101498, 0x17
 		DCD off_101780,	0x17, off_101784, 0x17,	off_101788, 0x17
 		DCD off_10178C,	0x17, off_101790, 0x17,	off_101794, 0x17
-		DCD off_101798,	0x17, off_10179C, 0x17,	off_1017A0, 0x17
+		DCD off_101798,	0x17, filename,	0x17, off_1017A0, 0x17
 		DCD off_1017A4,	0x17, off_1017A8, 0x17,	off_1017B0, 0x17
 		DCD off_1017B4,	0x17, off_1017BC, 0x17,	off_1017C0, 0x17
-		DCD off_1017C8,	0x17, src, 0x17, off_1017D0, 0x17, off_1017D8
+		DCD off_1017C8,	0x17, addr, 0x17, off_1017D0, 0x17, off_1017D8
 		DCD 0x17, off_1017E4, 0x17, off_101920,	0x17, off_101980
 		DCD 0x17, off_1019A8, 0x17, off_1019F8,	0x17, off_1019FC
 		DCD 0x17, off_101A4C, 0x17, off_101A50,	0x17, off_101B7C
@@ -16717,7 +16745,7 @@ aHomemenuVersio	DCB "homemenu version not supported",0 ; DATA XREF: install_ntr+
 aFirmwareVersio	DCB "firmware version not supported",0 ; DATA XREF: install_ntr:loc_1015ACo
 					; ROM:off_101798o
 aPid0_dmp	DCB "/pid0.dmp",0       ; DATA XREF: install_ntr+B4o
-					; ROM:off_10179Co
+					; ROM:filenameo
 aPid2_dmp	DCB "/pid2.dmp",0       ; DATA XREF: install_ntr+C0o
 					; ROM:off_1017A0o
 aPid3_dmp	DCB "/pid3.dmp",0       ; DATA XREF: install_ntr+CCo
@@ -17004,7 +17032,7 @@ aOpenfile	DCB "openfile",0        ; DATA XREF: dump_memory_to_file+94o
 					; ROM:off_10487Co
 aOpenFileFailed	DCB "open file failed",0 ; DATA XREF: dump_memory_to_file+B0o
 					; ROM:off_104884o
-aPatchSmFailed0	DCB "patch sm failed: %08x",0 ; DATA XREF: sub_104914+30o
+aPatchSmFailed0	DCB "patch sm failed: %08x",0 ; DATA XREF: patch_sm+30o
 					; ROM:off_104964o
 aGetprocessli_0	DCB "getProcessList failed: %08x",0 ; DATA XREF: ntr_cmd_process+40o
 					; ROM:off_104AB4o
@@ -17029,7 +17057,7 @@ aFsfile_readF_0	DCB "FSFILE_Read failed: %08x",0xA,0 ; DATA XREF: rtLoadFileToBu
 					; ROM:off_104EE4o
 aOpenthreadFail	DCB "openThread failed: %08x",0xA,0 ; DATA XREF: get_thread_context+28o
 					; ROM:off_104F64o
-aTop_04d_bmp	DCB "/top_%04d.bmp",0   ; DATA XREF: create_test_screenshot_+10o
+aTop_04d_bmp	DCB "/top_%04d.bmp",0   ; DATA XREF: get_screenshot_index+10o
 					; ROM:off_10543Co ...
 aBot_04d_bmp	DCB "/bot_%04d.bmp",0   ; DATA XREF: create_screenshot+114o
 					; ROM:off_1055A8o
@@ -17353,158 +17381,8 @@ rthook_return_C821180B DCB    0		; DATA XREF: thread_NTR_home_injectee+28o
 		DCB    0
 nintendo_home_ptr_fsuser_handle	DCD 0	; DATA XREF: get_nintendo_home_version_info:loc_100D68o
 					; get_nintendo_home_version_info+C4w ...
-rthook_patch_smdh DCD 0			; DATA XREF: thread_NTR_home_injectee+10o
+rthook_patch_smdh RT_HOOK <0>		; DATA XREF: thread_NTR_home_injectee+10o
 					; thread_NTR_home_injectee+18o	...
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCD 0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCD 0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-callee_patch_smdh DCB 0			; CODE XREF: callback_patch_smdh+14p
-					; DATA XREF: callback_patch_smdh+Co ...
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
-		DCB    0
 nintendo_home_some_retval_hook_addr DCD	0 ; DATA XREF: get_nintendo_home_version_info+70o
 					; get_nintendo_home_version_info+78w ...
 nintendo_home_applet_start_hook_addr DCD 0

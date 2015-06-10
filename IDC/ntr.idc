@@ -460,7 +460,8 @@ static Bytes_0(void) {
 	MakeCode	(x=0X100BC0);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
-	MakeComm	(0X100BCC,	"size of smdh?");
+	MakeComm	(0X100BC8,	"calls original (hooked) function:\n---------------------------------\n1. executes the two backed up instructions that have\n   been overwritten by the function hook mechanism\n\n2. executes a ldr pc, orig_func + 8, in order to execute\n   the original function\n\n3. waits for the original function to return (which will\n   then contain:\n\n   R0 = return value of original function\n   [the following registers are preserved]\n   R4 = pointer to SMDH\n   R5 = size of SMDH\n\n(for details refer to the rtInitHook function in the NTR plugin SDK)");
+	MakeComm	(0X100BCC,	"size of SMDH");
 	MakeComm	(0X100BDC,	"magic");
 	MakeCode	(x=0X100BE8);
 	OpOff		(x,	1,	0);
@@ -1081,18 +1082,28 @@ static Bytes_0(void) {
 	MakeCode	(x=0X1015AC);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X1015B4,	"pid");
 	MakeCode	(x=0X1015B8);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X1015C0,	"pid");
+	MakeCode	(x=0X1015C0);
+	OpDecimal	(x,	1);
 	MakeCode	(x=0X1015C4);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X1015CC,	"pid");
+	MakeCode	(x=0X1015CC);
+	OpDecimal	(x,	1);
 	MakeCode	(x=0X1015D0);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X1015D8,	"pid");
 	MakeCode	(x=0X1015DC);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X1015E4,	"va_dumpaddr");
+	MakeComm	(0X1015E8,	"size");
 	MakeCode	(x=0X1015EC);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
@@ -1113,15 +1124,19 @@ static Bytes_0(void) {
 	MakeCode	(x=0X101648);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X101658,	"size");
 	MakeCode	(x=0X10165C);
 	OpStroffEx	(x,	1,	GetStrucIdByName("NS_CONFIG"),	0);
 	MakeCode	(x=0X101660);
 	OpStroffEx	(x,	1,	GetStrucIdByName("NS_CONFIG"),	0);
+	MakeComm	(0X101664,	"addr");
 	MakeComm	(0X101678,	"dst");
 	MakeComm	(0X10167C,	"src");
 	MakeCode	(x=0X10167C);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X101684,	"size");
+	MakeComm	(0X101688,	"addr");
 	MakeCode	(x=0X1016A0);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
@@ -1178,6 +1193,7 @@ static Bytes_0(void) {
 	MakeDword	(x=0X10179C);
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
+	MakeName	(0X10179C,	"filename");
 	MakeDword	(x=0X1017A0);
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
@@ -1188,6 +1204,7 @@ static Bytes_0(void) {
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
 	MakeDword	(0X1017AC);
+	MakeName	(0X1017AC,	"va_dumpaddr");
 	MakeDword	(x=0X1017B0);
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
@@ -1208,7 +1225,7 @@ static Bytes_0(void) {
 	MakeDword	(x=0X1017CC);
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
-	MakeName	(0X1017CC,	"src");
+	MakeName	(0X1017CC,	"addr");
 	MakeDword	(x=0X1017D0);
 	OpOff		(x,	0,	0);
 	OpOff		(x,	128,	0);
@@ -1452,6 +1469,8 @@ static Bytes_0(void) {
 	MakeCode	(x=0X101E54);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X101E5C,	"addr");
+	MakeComm	(0X101E68,	"size");
 	MakeComm	(0X101E88,	"funcaddr");
 	MakeComm	(0X101E8C,	"callback_addr");
 	MakeComm	(0X101E90,	"hook");
@@ -3752,6 +3771,7 @@ static Bytes_0(void) {
 	OpStkvar	(x,	1);
 	MakeDword	(0X104910);
 	MakeCode	(0X104914);
+	MakeName	(0X104914,	"patch_sm");
 	MakeCode	(x=0X10491C);
 	OpStkvar	(x,	1);
 	MakeCode	(x=0X104924);
@@ -3814,6 +3834,8 @@ static Bytes_0(void) {
 	MakeCode	(x=0X104A54);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X104A60,	"pid");
+	MakeComm	(0X104A64,	"filename");
 	MakeCode	(x=0X104A64);
 	OpStkvar	(x,	1);
 	MakeCode	(0X104A70);
@@ -4072,12 +4094,14 @@ static Bytes_0(void) {
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
 	MakeCode	(x=0X104FDC);
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
+	MakeComm	(0X104FE4,	"addr");
 	MakeCode	(x=0X104FE8);
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
 	MakeCode	(x=0X104FF8);
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
 	MakeCode	(x=0X104FFC);
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
+	MakeComm	(0X105000,	"size");
 	MakeDword	(0X10500C);
 	MakeCode	(x=0X105010);
 	OpStroffEx	(x,	1,	GetStrucIdByName("RT_HOOK"),	0);
@@ -4092,8 +4116,12 @@ static Bytes_0(void) {
 	MakeCode	(x=0X105034);
 	OpHex		(x,	1);
 	MakeComm	(0X105038,	"place target addr");
+	MakeComm	(0X10503C,	"size");
+	MakeComm	(0X105040,	"addr");
 	MakeCode	(0X105054);
 	MakeName	(0X105054,	"disable_breakpoint");
+	MakeComm	(0X105080,	"size");
+	MakeComm	(0X105084,	"addr");
 	MakeCode	(0X105098);
 	MakeName	(0X105098,	"create_file");
 	MakeCode	(x=0X1050AC);
@@ -4141,6 +4169,8 @@ static Bytes_0(void) {
 	MakeCode	(0X1051AC);
 	MakeCode	(0X1051BC);
 	MakeName	(0X1051BC,	"write_to_file");
+	MakeComm	(0X105294,	"filename");
+	MakeComm	(0X105298,	"mode");
 	MakeCode	(0X1052C4);
 	MakeCode	(x=0X1052C8);
 	OpStkvar	(x,	1);
@@ -4168,10 +4198,12 @@ static Bytes_0(void) {
 	MakeCode	(0X1053E0);
 	MakeCode	(0X1053F0);
 	MakeCode	(0X1053F4);
-	MakeName	(0X1053F4,	"create_test_screenshot?");
+	MakeName	(0X1053F4,	"get_screenshot_index");
 	MakeCode	(x=0X105404);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
+	MakeComm	(0X105410,	"filename");
+	MakeComm	(0X105414,	"mode");
 	MakeCode	(0X105430);
 	MakeDword	(x=0X10543C);
 	OpOff		(x,	0,	0);
@@ -5076,6 +5108,15 @@ static Bytes_0(void) {
 	ExtLinA		(0X106BBC,	4,	"ORR             R0, R0, #0xC0");
 	ExtLinA		(0X106BBC,	5,	"MSR             CPSR_cf, R0");
 	ExtLinA		(0X106BBC,	6,	"");
+}
+
+//------------------------------------------------------------------------
+// Information about bytes
+
+static Bytes_1(void) {
+        auto x;
+#define id x
+
 	MakeComm	(0X106BC8,	"dst");
 	MakeCode	(x=0X106BC8);
 	OpOff		(x,	1,	0);
@@ -5144,15 +5185,6 @@ static Bytes_0(void) {
 	MakeCode	(x=0X106CAC);
 	OpOff		(x,	1,	0X10B0C8);
 	OpOff		(x,	129,	0X10B0C8);
-}
-
-//------------------------------------------------------------------------
-// Information about bytes
-
-static Bytes_1(void) {
-        auto x;
-#define id x
-
 	MakeCode	(x=0X106CB0);
 	OpOff		(x,	1,	0X10837C);
 	OpOff		(x,	129,	0X10837C);
@@ -5215,7 +5247,7 @@ static Bytes_1(void) {
 	MakeCode	(x=0X106D8C);
 	OpOff		(x,	1,	0);
 	OpOff		(x,	129,	0);
-	MakeName	(0X106D8C,	"arm11k_set_current_process");
+	MakeName	(0X106D8C,	"arm11k_set_current_kprocess");
 	MakeCode	(x=0X106D94);
 	OpOff		(x,	1,	0X10B0C8);
 	OpOff		(x,	129,	0X10B0C8);
@@ -6472,27 +6504,8 @@ static Bytes_1(void) {
 	MakeName	(0X10A948,	"rthook_return_C821180B");
 	MakeDword	(0X10AA14);
 	MakeName	(0X10AA14,	"nintendo_home_ptr_fsuser_handle");
-	MakeDword	(0X10AA18);
+	MakeStruct	(0X10AA18,	"RT_HOOK");
 	MakeName	(0X10AA18,	"rthook_patch_smdh");
-	MakeDword	(0X10AA1C);
-	MakeDword	(0X10AA20);
-	MakeDword	(0X10AA24);
-	MakeDword	(0X10AA28);
-	MakeDword	(0X10AA2C);
-	MakeDword	(0X10AA30);
-	MakeDword	(0X10AA34);
-	MakeDword	(0X10AA38);
-	MakeDword	(0X10AA3C);
-	MakeDword	(0X10AA40);
-	MakeDword	(0X10AA44);
-	MakeDword	(0X10AA48);
-	MakeDword	(0X10AA4C);
-	MakeDword	(0X10AA50);
-	MakeDword	(0X10AA54);
-	MakeDword	(0X10AA58);
-	MakeDword	(0X10AA64);
-	MakeByte	(0X10AAA4);
-	MakeName	(0X10AAA4,	"callee_patch_smdh");
 	MakeDword	(0X10AAE4);
 	MakeName	(0X10AAE4,	"nintendo_home_some_retval_hook_addr");
 	MakeComm	(0X10AAE8,	"called by nn::applet::CTR::detail::PrepareToStartApplication(nn::fs::TitleDataSpecifier const*, bool)");
@@ -6658,6 +6671,8 @@ static Functions_0(void) {
 	MakeFunction    (0X100BB4,0X100C08);
 	SetFunctionFlags(0X100BB4,0x400);
 	MakeFrame(0X100BB4, 0X18, 0, 0);
+	MakeLocal(0X100BB4, 0X100C08, "[bp+0]", "ptr_SMDH");
+	MakeLocal(0X100BB4, 0X100C08, "[bp+0X4]", "size_SMDH");
 	MakeNameEx(0X100BFC, "invalid_smdh", SN_LOCAL);
 	MakeFunction    (0X100C14,0X100C28);
 	SetFunctionFlags(0X100C14,0x400);
@@ -6949,11 +6964,13 @@ static Functions_0(void) {
 	MakeLocal(0X1042F8, 0X1043B0, "[bp-0XD0]", "procname");
 	MakeFunction    (0X1043B8,0X10454C);
 	SetFunctionFlags(0X1043B8,0x400);
+	SetType(0X1043B8, "void __cdecl dump_process_to_file(unsigned int pid, char *filename);");
 	MakeFrame(0X1043B8, 0X1078, 0, 0);
 	MakeLocal(0X1043B8, 0X10454C, "[bp-0X1078]", "size");
 	MakeLocal(0X1043B8, 0X10454C, "[bp-0X1050]", "hSrc");
 	MakeFunction    (0X104728,0X10486C);
 	SetFunctionFlags(0X104728,0x400);
+	SetType(0X104728, "int __cdecl dump_memory_to_file(unsigned int va_dumpaddr, unsigned int size, char *filename);");
 	MakeFrame(0X104728, 0X1128, 0, 0);
 	MakeFunction    (0X10488C,0X104910);
 	SetFunctionFlags(0X10488C,0x400);
@@ -7014,6 +7031,7 @@ static Functions_0(void) {
 	SetType(0X104F68, "int __cdecl rtGenerateJumpCode(void *dst, void *src);");
 	MakeFunction    (0X104F80,0X104F94);
 	SetFunctionFlags(0X104F80,0x400);
+	SetType(0X104F80, "int __cdecl flush_current_process_data_cache(const void *addr, unsigned int size);");
 	MakeFunction    (0X104F98,0X10500C);
 	SetFunctionFlags(0X104F98,0x400);
 	SetType(0X104F98, "int __fastcall rtInitHook(RT_HOOK *hook, void *funcaddr, void *callback_addr);");
@@ -7027,6 +7045,7 @@ static Functions_0(void) {
 	MakeFrame(0X105054, 0X8, 0, 0);
 	MakeFunction    (0X105098,0X105110);
 	SetFunctionFlags(0X105098,0x400);
+	SetType(0X105098, "int __cdecl create_file(char *filename, unsigned int mode);");
 	MakeFrame(0X105098, 0X48, 0, 0);
 	MakeFunction    (0X10514C,0X105188);
 	SetFunctionFlags(0X10514C,0x400);
@@ -7043,9 +7062,11 @@ static Functions_0(void) {
 	MakeFrame(0X1052C4, 0X24, 0, 0);
 	MakeFunction    (0X1053F4,0X10543C);
 	SetFunctionFlags(0X1053F4,0x400);
+	SetType(0X1053F4, "int get_screenshot_index(void);");
 	MakeFrame(0X1053F4, 0X48, 0, 0);
 	MakeFunction    (0X105440,0X105594);
 	SetFunctionFlags(0X105440,0x400);
+	SetType(0X105440, "int create_screenshot(void);");
 	MakeFrame(0X105440, 0X78, 0, 0);
 	MakeFunction    (0X1055B0,0X105640);
 	SetFunctionFlags(0X1055B0,0x400);
